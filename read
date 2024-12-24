@@ -21,6 +21,19 @@ local function sendToWebhook(content)
     end
 end
 
+-- Function to format numbers with suffixes (e.g., 1K, 1M, 1B, etc.)
+local function format_number(number)
+    local suffixes = {"", "K", "M", "B", "T", "QD"}
+    local suffix_index = 1
+
+    while math.abs(number) >= 1000 and suffix_index < #suffixes do
+        number = number / 1000.0
+        suffix_index = suffix_index + 1
+    end
+
+    return string.format("%.2f%s", number, suffixes[suffix_index])
+end
+
 -- Function to fetch and format a player's stats
 local function formatPlayerStats(player)
     local data = game:GetService("ReplicatedStorage"):FindFirstChild("Datas") and game:GetService("ReplicatedStorage").Datas:FindFirstChild(player.UserId)
@@ -29,8 +42,11 @@ local function formatPlayerStats(player)
     local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
     local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
 
+    -- Format the energy (Stats) to be abbreviated
+    local formattedEnergy = format_number(energy)
+
     -- Format the player stats
-    return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, energy)
+    return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, formattedEnergy)
 end
 
 -- Function to collect stats from all players
