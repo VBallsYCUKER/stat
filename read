@@ -21,7 +21,7 @@ local function sendToWebhook(content)
     end
 end
 
--- Function to format a single player's stats
+-- Function to fetch and format a player's stats
 local function formatPlayerStats(player)
     local data = game:GetService("ReplicatedStorage"):FindFirstChild("Datas") and game:GetService("ReplicatedStorage").Datas:FindFirstChild(player.UserId)
     if not data then return nil end
@@ -33,8 +33,8 @@ local function formatPlayerStats(player)
     return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, energy)
 end
 
--- Gather stats from all players and send them to the webhook
-local function sendAllStatsToWebhook()
+-- Function to collect stats from all players
+local function collectAllStats()
     local allStats = {}
 
     for _, player in ipairs(game.Players:GetPlayers()) do
@@ -44,13 +44,18 @@ local function sendAllStatsToWebhook()
         end
     end
 
-    if #allStats > 0 then
-        local content = table.concat(allStats, "\n")
-        sendToWebhook(content)
+    return table.concat(allStats, "\n")
+end
+
+-- Main function to send stats to the webhook
+local function sendAllStatsToWebhook()
+    local stats = collectAllStats()
+    if stats and stats ~= "" then
+        sendToWebhook(stats)
     else
-        warn("No stats to send to the webhook.")
+        warn("No stats available to send.")
     end
 end
 
--- Execute on script load
+-- Run the script
 sendAllStatsToWebhook()
