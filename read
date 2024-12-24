@@ -16,12 +16,22 @@ local function sendToWebhook(content, webhookUrl)
     local jsonData = game:GetService("HttpService"):JSONEncode(data)
     local headers = { ["Content-Type"] = "application/json" }
 
-    if request then
-        request({ Url = webhookUrl, Body = jsonData, Method = "POST", Headers = headers })
-    elseif syn and syn.request then
-        syn.request({ Url = webhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+    -- Handling requests for both webhook URLs
+    local success, response = pcall(function()
+        if request then
+            return request({ Url = webhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+        elseif syn and syn.request then
+            return syn.request({ Url = webhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+        else
+            error("HTTP request function not found.")
+        end
+    end)
+
+    -- Log success or failure
+    if success then
+        print("Data sent successfully to webhook:", webhookUrl)
     else
-        warn("HTTP request function not found. Unable to send to webhook.")
+        warn("Failed to send data to webhook:", webhookUrl, response or "No response")
     end
 end
 
