@@ -24,6 +24,23 @@ local function sendToWebhook(content)
     end
 end
 
+-- Helper function to abbreviate large numbers
+local function abbreviateNumber(number)
+    local suffixes = { "K", "M", "B", "T", "QD" }
+    local index = 0
+
+    while number >= 1000 and index < #suffixes do
+        number = number / 1000
+        index = index + 1
+    end
+
+    if index == 0 then
+        return tostring(math.floor(number)) -- No suffix for numbers below 1K
+    end
+
+    return string.format("%.1f%s", number, suffixes[index])
+end
+
 -- Helper function to determine rebirth group
 local function getRebirthGroup(rebirths)
     local groups = {
@@ -92,9 +109,10 @@ local function formatPlayerStats(player)
     -- Determine rebirth and stats group
     local rebirthGroup = getRebirthGroup(rebirths)
     local statGroup = getStatGroup(energy)
+    local abbreviatedEnergy = abbreviateNumber(energy)
 
     -- Format player stats
-    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, energy)
+    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, abbreviatedEnergy)
 end
 
 -- Function to collect stats from all players
