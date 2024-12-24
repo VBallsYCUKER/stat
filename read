@@ -39,7 +39,16 @@ local function formatPlayerStats(player)
     end
 
     local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
-    local stats = data:FindFirstChild("Stats") and data.Stats.Value or "0"
+    local stats = 0
+
+    -- Calculate stats from individual fields
+    local strength = data:FindFirstChild("Strength") and data.Strength.Value or 0
+    local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
+    local defense = data:FindFirstChild("Defense") and data.Defense.Value or 0
+    local speed = data:FindFirstChild("Speed") and data.Speed.Value or 0
+
+    -- Sum up the stats
+    stats = strength + energy + defense + speed
 
     return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, stats)
 end
