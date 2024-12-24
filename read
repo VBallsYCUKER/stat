@@ -57,8 +57,8 @@ local function getStatGroup(stats)
     local groups = {
         {30e15, "30qd+"},
         {10e15, "10qd+"},
-        {5e15, "5qd+",
-        {3e15, "3qd+",
+        {5e15, "5qd+"},
+        {3e15, "3qd+"},
         {1e15, "1qd+"},
         {750e12, "750T+"},
         {500e12, "500T+"},
@@ -78,7 +78,7 @@ local function getStatGroup(stats)
         end
     end
 
-    return "(<1M)"
+    return "<1M"
 end
 
 -- Function to fetch and format a player's stats
@@ -89,12 +89,12 @@ local function formatPlayerStats(player)
     local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
     local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
 
-    -- Determine rebirth and stat groups
+    -- Determine rebirth and stats group
     local rebirthGroup = getRebirthGroup(rebirths)
     local statGroup = getStatGroup(energy)
 
     -- Format player stats
-    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, statGroup)
+    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, energy)
 end
 
 -- Function to collect stats from all players
