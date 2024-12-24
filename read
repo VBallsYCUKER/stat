@@ -1,6 +1,9 @@
 -- Webhook configuration
 getgenv().WebhookUrl = getgenv().WebhookUrl or "https://ptb.discord.com/api/webhooks/1315872200858931330/nWW8vDsNTUnHHAQ7Fg6Kde0Ak4b6TOjWfQ3Kj2TuyfvECJAK4Y0sRWyZ3Nd4q3-e3esJ"
 
+-- Log tracking table
+local loggedPlayers = {}
+
 -- Helper function to send data to the webhook
 local function sendToWebhook(content)
     local data = {
@@ -21,17 +24,61 @@ local function sendToWebhook(content)
     end
 end
 
--- Function to format numbers with suffixes (e.g., 1K, 1M, 1B, etc.)
-local function format_number(number)
-    local suffixes = {"", "K", "M", "B", "T", "QD"}
-    local suffix_index = 1
+-- Helper function to determine rebirth group
+local function getRebirthGroup(rebirths)
+    local groups = {
+        {0, 10, "0+"},
+        {11, 100, "11+"},
+        {101, 500, "101+"},
+        {501, 1000, "501+"},
+        {1000, 2500, "1k+"},
+        {2500, 5000, "2.5k+"},
+        {5000, 10000, "5k+"},
+        {10000, 20000, "10k+"},
+        {20000, 33332, "20k+"},
+        {33333, 50000, "33333+"},
+        {50000, 100000, "50k+"},
+        {100000, 500000, "100k+"},
+        {500000, 1000000, "500k+"},
+        {1000000, math.huge, "1M+"}
+    }
 
-    while math.abs(number) >= 1000 and suffix_index < #suffixes do
-        number = number / 1000.0
-        suffix_index = suffix_index + 1
+    for _, group in ipairs(groups) do
+        if rebirths >= group[1] and rebirths <= group[2] then
+            return group[3]
+        end
     end
 
-    return string.format("%.2f%s", number, suffixes[suffix_index])
+    return "Unknown"
+end
+
+-- Helper function to determine stat group
+local function getStatGroup(stats)
+    local groups = {
+        {30e15, "{30qd+}"},
+        {10e15, "{10qd+}"},
+        {5e15, "5qd+"},
+        {3e15, "3qd+"},
+        {1e15, "1qd+"},
+        {750e12, "750T+"},
+        {500e12, "500T+"},
+        {250e12, "250T+"},
+        {100e12, "[100T+]"},
+        {10e12, "[10T+]"},
+        {1e12, "[1T+]"},
+        {100e9, "(100B+)"},
+        {1e9, "(1B+)"},
+        {1e6, "(1M+)"},
+        {0, "(<1M)"}
+    }
+
+    for _, group in ipairs(groups) do
+        if stats >= group[1] then
+            return group[2]
+        end
+    end
+
+    return "(<1M)"
 end
 
 -- Function to fetch and format a player's stats
@@ -42,21 +89,26 @@ local function formatPlayerStats(player)
     local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
     local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
 
-    -- Format the energy (Stats) to be abbreviated
-    local formattedEnergy = format_number(energy)
+    -- Determine rebirth and stat groups
+    local rebirthGroup = getRebirthGroup(rebirths)
+    local statGroup = getStatGroup(energy)
 
-    -- Format the player stats
-    return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, formattedEnergy)
+    -- Format player stats
+    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, statGroup)
 end
 
 -- Function to collect stats from all players
 local function collectAllStats()
     local allStats = {}
+    local currentTime = os.time()
 
     for _, player in ipairs(game.Players:GetPlayers()) do
-        local playerStats = formatPlayerStats(player)
-        if playerStats then
-            table.insert(allStats, playerStats)
+        if not loggedPlayers[player.UserId] or (currentTime - loggedPlayers[player.UserId]) >= 600 then
+            local playerStats = formatPlayerStats(player)
+            if playerStats then
+                table.insert(allStats, playerStats)
+                loggedPlayers[player.UserId] = currentTime -- Mark as logged
+            end
         end
     end
 
