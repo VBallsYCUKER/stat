@@ -1,59 +1,39 @@
--- Define webhook URL
+-- Webhook configuration
 getgenv().WebhookUrl = getgenv().WebhookUrl or "https://ptb.discord.com/api/webhooks/1315872200858931330/nWW8vDsNTUnHHAQ7Fg6Kde0Ak4b6TOjWfQ3Kj2TuyfvECJAK4Y0sRWyZ3Nd4q3-e3esJ"
 
--- Function to send data to Discord webhook
+-- Helper function to send data to the webhook
 local function sendToWebhook(content)
     local data = {
-        ["username"] = "Stat Logger", -- Name of the webhook
-        ["avatar_url"] = "https://images-ext-1.discordapp.net/external/l5-KoXA2mt7NrUE6gWvxiprX6o72ojZeBHhDDdoI9IE/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1320931723717902376/174fde885a08dfd98be5ffefa681b07d.png?format=webp&quality=lossless&width=663&height=663", -- Avatar of the webhook
+        ["username"] = "Stat Logger",
+        ["avatar_url"] = "https://images-ext-1.discordapp.net/external/l5-KoXA2mt7NrUE6gWvxiprX6o72ojZeBHhDDdoI9IE/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1320931723717902376/174fde885a08dfd98be5ffefa681b07d.png?format=webp&quality=lossless&width=663&height=663",
         ["content"] = content
     }
+
     local jsonData = game:GetService("HttpService"):JSONEncode(data)
+    local headers = { ["Content-Type"] = "application/json" }
 
-    local headers = {
-        ["content-type"] = "application/json"
-    }
-
-    local requestDetails = {
-        Url = getgenv().WebhookUrl,
-        Body = jsonData,
-        Method = "POST",
-        Headers = headers
-    }
-
-    -- Attempt to send the request
-    local success, response = pcall(function()
-        return request(requestDetails)
-    end)
-
-    if not success then
-        warn("Failed to send data to webhook: ", response)
+    if request then
+        request({ Url = getgenv().WebhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+    elseif syn and syn.request then
+        syn.request({ Url = getgenv().WebhookUrl, Body = jsonData, Method = "POST", Headers = headers })
+    else
+        warn("HTTP request function not found. Unable to send to webhook.")
     end
 end
 
 -- Function to format a single player's stats
 local function formatPlayerStats(player)
-    local data = game:GetService("ReplicatedStorage"):FindFirstChild("Datas"):FindFirstChild(tostring(player.UserId))
-    if not data then
-        return nil
-    end
+    local data = game:GetService("ReplicatedStorage"):FindFirstChild("Datas") and game:GetService("ReplicatedStorage").Datas:FindFirstChild(player.UserId)
+    if not data then return nil end
 
     local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
-    local stats = 0
-
-    -- Calculate stats from individual fields
-    local strength = data:FindFirstChild("Strength") and data.Strength.Value or 0
     local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
-    local defense = data:FindFirstChild("Defense") and data.Defense.Value or 0
-    local speed = data:FindFirstChild("Speed") and data.Speed.Value or 0
 
-    -- Sum up the stats
-    stats = strength + energy + defense + speed
-
-    return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, stats)
+    -- Format the player stats
+    return string.format("%s (%s), Rebirths: %d, Stats: %s", player.DisplayName, player.Name, rebirths, energy)
 end
 
--- Function to gather all players' stats and send to the webhook
+-- Gather stats from all players and send them to the webhook
 local function sendAllStatsToWebhook()
     local allStats = {}
 
@@ -72,5 +52,5 @@ local function sendAllStatsToWebhook()
     end
 end
 
--- Execute the function to send stats on script execution
+-- Execute on script load
 sendAllStatsToWebhook()
