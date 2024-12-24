@@ -27,10 +27,10 @@ end
 -- Helper function to determine rebirth group
 local function getRebirthGroup(rebirths)
     local groups = {
-        {0, 10, "0+"},
-        {11, 100, "11+"},
-        {101, 500, "101+"},
-        {501, 1000, "501+"},
+        {0, 9, "<10"},
+        {10, 99, "10+"},
+        {100, 499, "100+"},
+        {500, 1000, "500+"},
         {1000, 2500, "1k+"},
         {2500, 5000, "2.5k+"},
         {5000, 10000, "5k+"},
@@ -55,21 +55,21 @@ end
 -- Helper function to determine stat group
 local function getStatGroup(stats)
     local groups = {
-        {30e15, "{30qd+}"},
-        {10e15, "{10qd+}"},
-        {5e15, "5qd+"},
-        {3e15, "3qd+"},
-        {1e15, "1qd+"},
-        {750e12, "750T+"},
-        {500e12, "500T+"},
-        {250e12, "250T+"},
+        {30e15, "[30qd+]"},
+        {10e15, "[10qd+]"},
+        {5e15, "[5qd+"],
+        {3e15, "[3qd+"],
+        {1e15, "[1qd+]"},
+        {750e12, "[750T+]"},
+        {500e12, "[500T+]"},
+        {250e12, "[250T+]"},
         {100e12, "[100T+]"},
         {10e12, "[10T+]"},
         {1e12, "[1T+]"},
-        {100e9, "(100B+)"},
-        {1e9, "(1B+)"},
-        {1e6, "(1M+)"},
-        {0, "(<1M)"}
+        {100e9, "[100B+]"},
+        {1e9, "[1B+]"},
+        {1e6, "[1M+]"},
+        {0, "[<1M]"}
     }
 
     for _, group in ipairs(groups) do
@@ -103,6 +103,7 @@ local function collectAllStats()
     local currentTime = os.time()
 
     for _, player in ipairs(game.Players:GetPlayers()) do
+        -- Check if player is within cooldown
         if not loggedPlayers[player.UserId] or (currentTime - loggedPlayers[player.UserId]) >= 600 then
             local playerStats = formatPlayerStats(player)
             if playerStats then
