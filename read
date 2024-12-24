@@ -4,6 +4,8 @@ getgenv().WebhookUrl = getgenv().WebhookUrl or "https://ptb.discord.com/api/webh
 -- Function to send data to Discord webhook
 local function sendToWebhook(content)
     local data = {
+        ["username"] = "Stat Logger", -- Name of the webhook
+        ["avatar_url"] = "https://images-ext-1.discordapp.net/external/l5-KoXA2mt7NrUE6gWvxiprX6o72ojZeBHhDDdoI9IE/%3Fsize%3D4096/https/cdn.discordapp.com/icons/1320931723717902376/174fde885a08dfd98be5ffefa681b07d.png?format=webp&quality=lossless&width=663&height=663", -- Avatar of the webhook
         ["content"] = content
     }
     local jsonData = game:GetService("HttpService"):JSONEncode(data)
