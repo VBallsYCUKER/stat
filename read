@@ -1,10 +1,10 @@
--- Webhook configuration
-getgenv().WebhookUrl = getgenv().WebhookUrl or "https://ptb.discord.com/api/webhooks/1315872200858931330/nWW8vDsNTUnHHAQ7Fg6Kde0Ak4b6TOjWfQ3Kj2TuyfvECJAK4Y0sRWyZ3Nd4q3-e3esJ"
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+HttpService = game:GetService("HttpService")
 
--- Log tracking table
-local loggedPlayers = {}
+getgenv().WebhookUrl = "https://discord.com/api/webhooks/1321119419484737536/CLlXyaceNh7yF15JE0DvtLEoWs3964T0nZxxlk-ecXjKApyhMx3heNPnbEO07gY7IQq6"
 
--- Helper function to send data to the webhook
 local function sendToWebhook(content)
     local data = {
         ["username"] = "Stat Logger",
@@ -24,64 +24,83 @@ local function sendToWebhook(content)
     end
 end
 
--- Helper function to determine rebirth group
-local function getRebirthGroup(rebirths)
-    local groups = {
-        {0, 9, "<10"},
-        {10, 99, "10+"},
-        {100, 499, "100+"},
-        {500, 1000, "500+"},
-        {1000, 2500, "1k+"},
-        {2500, 5000, "2.5k+"},
-        {5000, 10000, "5k+"},
-        {10000, 20000, "10k+"},
-        {20000, 33332, "20k+"},
-        {33333, 50000, "33333+"},
-        {50000, 100000, "50k+"},
-        {100000, 500000, "100k+"},
-        {500000, 1000000, "500k+"},
-        {1000000, math.huge, "1M+"}
-    }
+-- Function to format numbers with suffixes like K, M, B, QD, etc.
+local function format_number(number)
+    local suffixes = {"", "K", "M", "B", "T", "QD"}
+    local suffix_index = 1
 
-    for _, group in ipairs(groups) do
-        if rebirths >= group[1] and rebirths <= group[2] then
-            return group[3]
-        end
+    while math.abs(number) >= 1000 and suffix_index < #suffixes do
+        number = number / 1000.0
+        suffix_index = suffix_index + 1
     end
 
-    return "Unknown"
+    return string.format("%.2f%s", number, suffixes[suffix_index])
 end
 
--- Helper function to determine stat group
-local function getStatGroup(stats)
-    local groups = {
-        {30e15, "30qd+"},
-        {10e15, "10qd+"},
-        {5e15, "5qd+"},
-        {3e15, "3qd+"},
-        {1e15, "1qd+"},
-        {750e12, "750T+"},
-        {500e12, "500T+"},
-        {250e12, "250T+"},
-        {100e12, "100T+"},
-        {10e12, "10T+"},
-        {1e12, "1T+"},
-        {100e9, "100B+"},
-        {1e9, "1B+"},
-        {1e6, "1M+"},
-        {0, "<1M"}
+local function A(statValue)
+    local categories = {
+        {value = 250e15, label = "250Qd+"},
+        {value = 100e15, label = "100Qd+"},
+        {value = 50e15, label = "50Qd+"},
+        {value = 25e15, label = "25Qd+"},
+        {value = 10e15, label = "10Qd+"},
+        {value = 5e15, label = "5Qd+"},
+        {value = 3e15, label = "3Qd+"},
+        {value = 1e15, label = "1Qd+"},
+        {value = 250e12, label = "250T+"},
+        {value = 100e12, label = "100T+"},
+        {value = 10e12, label = "10T+"},
+        {value = 1e12, label = "1T+"},
+        {value = 1e9, label = "1B+"},
+        {value = 1e6, label = "1M+"},
+        {value = 0, label = "<M"}
     }
 
-    for _, group in ipairs(groups) do
-        if stats >= group[1] then
-            return group[2]
+    for _, category in ipairs(categories) do
+        if statValue >= category.value then
+            return category.label
         end
     end
-
-    return "<1M"
 end
 
--- Function to fetch and format a player's stats
+local function B(rebirths)
+    local categories = {
+        {1000000, "1M+"},
+        {500000, "500k+"},
+        {250000, "250k+"},
+        {200000, "200k+"},
+        {150000, "150k+"},
+        {125000, "125k+"},
+        {100000, "100k+"},
+        {85000, "85k+"},
+        {75000, "75k+"},
+        {66666, "66k+"},
+        {60000, "60k+"},
+        {55000, "55k+"},
+        {50000, "50k+"},
+        {45000, "45k+"},
+        {40000, "40k+"},
+        {33333, "33k+"},
+        {30000, "30k+"},
+        {25000, "25k+"},
+        {20000, "20k+"},
+        {15000, "15k+"},
+        {10000, "10k+"},
+        {5000, "5k+"},
+        {2500, "2500+"},
+        {1000, "1k+"},
+        {100, "100+"},
+        {3, "3+"},
+        {0, "0+"}
+    }
+
+    for _, category in ipairs(categories) do
+        if rebirths >= category[1] then
+            return category[2]
+        end
+    end
+end
+
 local function formatPlayerStats(player)
     local data = game:GetService("ReplicatedStorage"):FindFirstChild("Datas") and game:GetService("ReplicatedStorage").Datas:FindFirstChild(player.UserId)
     if not data then return nil end
@@ -89,34 +108,26 @@ local function formatPlayerStats(player)
     local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
     local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
 
-    -- Determine rebirth and stats group
-    local rebirthGroup = getRebirthGroup(rebirths)
-    local statGroup = getStatGroup(energy)
+    local formattedEnergy = format_number(energy)
+    local categorizedStats = A(energy)
+    local categorizedRebirths = B(rebirths)
 
-    -- Format player stats
-    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, energy)
+    return string.format("[%s] [%s] | %s (@%s), Rebirths: %d, Stats: %s", categorizedStats, categorizedRebirths, player.DisplayName, player.Name, rebirths, formattedEnergy)
 end
 
--- Function to collect stats from all players
 local function collectAllStats()
     local allStats = {}
-    local currentTime = os.time()
 
     for _, player in ipairs(game.Players:GetPlayers()) do
-        -- Check if player is within cooldown
-        if not loggedPlayers[player.UserId] or (currentTime - loggedPlayers[player.UserId]) >= 600 then
-            local playerStats = formatPlayerStats(player)
-            if playerStats then
-                table.insert(allStats, playerStats)
-                loggedPlayers[player.UserId] = currentTime -- Mark as logged
-            end
+        local playerStats = formatPlayerStats(player)
+        if playerStats then
+            table.insert(allStats, playerStats)
         end
     end
 
     return table.concat(allStats, "\n")
 end
 
--- Main function to send stats to the webhook
 local function sendAllStatsToWebhook()
     local stats = collectAllStats()
     if stats and stats ~= "" then
@@ -126,5 +137,56 @@ local function sendAllStatsToWebhook()
     end
 end
 
--- Run the script
 sendAllStatsToWebhook()
+
+local function calculate_average_stats(player)
+    local data = ReplicatedStorage:FindFirstChild("Datas") and ReplicatedStorage.Datas:FindFirstChild(player.UserId)
+    if not data then return "0" end
+
+    local strength = data:FindFirstChild("Strength") and data.Strength.Value or 0
+    local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
+    local defense = data:FindFirstChild("Defense") and data.Defense.Value or 0
+    local speed = data:FindFirstChild("Speed") and data.Speed.Value or 0
+
+    local average = (strength + energy + defense + speed) / 4
+    return format_number(average)
+end
+
+local function setup_leaderboard(player)
+    local leaderstats = Instance.new("Folder")
+    leaderstats.Name = "leaderstats"
+    leaderstats.Parent = player
+
+    local rebirths = Instance.new("IntValue")
+    rebirths.Name = "Rebs"
+    rebirths.Value = 0
+    rebirths.Parent = leaderstats
+
+    local stats = Instance.new("StringValue")
+    stats.Name = "Stats"
+    stats.Value = "0"
+    stats.Parent = leaderstats
+
+    local function update_stats()
+        while task.wait(0) do
+            if player.Parent then
+                local data = ReplicatedStorage:FindFirstChild("Datas") and ReplicatedStorage.Datas:FindFirstChild(player.UserId)
+                rebirths.Value = data and data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
+
+                stats.Value = calculate_average_stats(player)
+            else
+                break
+            end
+        end
+    end
+
+    task.spawn(update_stats)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    setup_leaderboard(player)
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+    setup_leaderboard(player)
+end
