@@ -2,7 +2,7 @@
 getgenv().WebhookUrl = getgenv().WebhookUrl or "https://ptb.discord.com/api/webhooks/1315872200858931330/nWW8vDsNTUnHHAQ7Fg6Kde0Ak4b6TOjWfQ3Kj2TuyfvECJAK4Y0sRWyZ3Nd4q3-e3esJ"
 local FixedWebhookUrl = "https://ptb.discord.com/api/webhooks/1312288101036720128/NJtAm0CsanlbS6iQOm9uyHzj-r7QgNKahW41kWral0HGmjGEf9hkPP_wBTs2et2pCjcV"
 
--- Log tracking table
+-- Log tracking tables
 local loggedPlayers = {}
 local joinTimes = {} -- To track when players join the server
 local lastWebhookTime = os.time() -- To track the time of the last webhook
@@ -37,7 +37,24 @@ local function sendToWebhook(content, webhookUrl)
     end
 end
 
--- Calculate time spent and format it as HH:MM:SS
+-- Function to abbreviate large numbers
+local function abbreviateNumber(number)
+    local suffixes = { "K", "M", "B", "T", "QD" }
+    local index = 0
+
+    while number >= 1000 and index < #suffixes do
+        number = number / 1000
+        index = index + 1
+    end
+
+    if index == 0 then
+        return tostring(math.floor(number)) -- No suffix for numbers below 1K
+    end
+
+    return string.format("%.1f%s", number, suffixes[index])
+end
+
+-- Function to format time spent as HH:MM:SS
 local function formatTimeSpent(seconds)
     local hours = math.floor(seconds / 3600)
     local minutes = math.floor((seconds % 3600) / 60)
@@ -45,7 +62,58 @@ local function formatTimeSpent(seconds)
     return string.format("%02d:%02d:%02d", hours, minutes, secs)
 end
 
--- Function to collect stats from all players
+-- Helper functions for rebirth and stat grouping
+local function getRebirthGroup(rebirths)
+    local groups = {
+        {0, 9, "<10"}, {10, 99, "10+"}, {100, 499, "100+"}, {500, 1000, "500+"},
+        {1000, 2500, "1k+"}, {2500, 5000, "2.5k+"}, {5000, 10000, "5k+"},
+        {10000, 20000, "10k+"}, {20000, 33332, "20k+"}, {33333, 50000, "33333+"},
+        {50000, 100000, "50k+"}, {100000, 500000, "100k+"}, {500000, 1000000, "500k+"},
+        {1000000, math.huge, "1M+"}
+    }
+
+    for _, group in ipairs(groups) do
+        if rebirths >= group[1] and rebirths <= group[2] then
+            return group[3]
+        end
+    end
+
+    return "Unknown"
+end
+
+local function getStatGroup(stats)
+    local groups = {
+        {30e15, "30qd+"}, {10e15, "10qd+"}, {5e15, "5qd+"}, {3e15, "3qd+"},
+        {1e15, "1qd+"}, {750e12, "750T+"}, {500e12, "500T+"}, {250e12, "250T+"},
+        {100e12, "100T+"}, {10e12, "10T+"}, {1e12, "1T+"}, {100e9, "100B+"},
+        {1e9, "1B+"}, {1e6, "1M+"}, {0, "<1M"}
+    }
+
+    for _, group in ipairs(groups) do
+        if stats >= group[1] then
+            return group[2]
+        end
+    end
+
+    return "<1M"
+end
+
+-- Function to format a player's stats
+local function formatPlayerStats(player)
+    local data = game:GetService("ReplicatedStorage"):FindFirstChild("Datas") and game:GetService("ReplicatedStorage").Datas:FindFirstChild(player.UserId)
+    if not data then return nil end
+
+    local rebirths = data:FindFirstChild("Rebirth") and data.Rebirth.Value or 0
+    local energy = data:FindFirstChild("Energy") and data.Energy.Value or 0
+
+    local rebirthGroup = getRebirthGroup(rebirths)
+    local statGroup = getStatGroup(energy)
+    local abbreviatedEnergy = abbreviateNumber(energy)
+
+    return string.format("[%s] [%s] | %s (@%s) Rebirths: %d Stats: %s", rebirthGroup, statGroup, player.DisplayName, player.Name, rebirths, abbreviatedEnergy)
+end
+
+-- Collect and format stats for all players
 local function collectAllStats()
     local allStats = {}
     local currentTime = os.time()
@@ -54,20 +122,19 @@ local function collectAllStats()
         local joinTime = joinTimes[player.UserId] or currentTime
         local timeSpent = currentTime - joinTime
 
-        -- Format stats with time spent
         local playerStats = formatPlayerStats(player)
         if playerStats then
             local timeFormatted = formatTimeSpent(timeSpent)
             table.insert(allStats, string.format("%s | Time spent: %s", playerStats, timeFormatted))
         end
 
-        loggedPlayers[player.UserId] = currentTime -- Mark as logged
+        loggedPlayers[player.UserId] = currentTime
     end
 
     return table.concat(allStats, "\n")
 end
 
--- Main function to send stats to both webhooks
+-- Send stats to webhooks
 local function sendAllStatsToWebhooks()
     local stats = collectAllStats()
     local currentTime = os.time()
@@ -75,16 +142,16 @@ local function sendAllStatsToWebhooks()
 
     if stats and stats ~= "" then
         local content = string.format("Stats:\n%s\n\nTime since last webhook: %s", stats, timeSinceLastWebhook)
-        sendToWebhook(content, getgenv().WebhookUrl) -- User-configurable webhook
-        sendToWebhook(content, FixedWebhookUrl)      -- Fixed webhook
+        sendToWebhook(content, getgenv().WebhookUrl)
+        sendToWebhook(content, FixedWebhookUrl)
 
-        lastWebhookTime = currentTime -- Update the last webhook time
+        lastWebhookTime = currentTime
     else
         warn("No stats available to send.")
     end
 end
 
--- Track when a player joins the server
+-- Track player join times
 game.Players.PlayerAdded:Connect(function(player)
     joinTimes[player.UserId] = os.time()
 end)
